@@ -8,6 +8,8 @@
 
 - [js垃圾回收机制](./myArticle/js垃圾回收机制.md)
 
+- [MVVM理解](./myArticle/MVVM.md)
+
 
 ### 每周翻译文章
 
