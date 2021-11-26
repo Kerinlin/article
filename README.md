@@ -10,6 +10,8 @@
 
 - [MVVM理解](./myArticle/MVVM.md)
 
+- [Vue生命周期](./myArticle/生命周期.md)
+
 
 ### 每周翻译文章
 
