@@ -12,6 +12,8 @@
 
 - [Vue生命周期](./myArticle/生命周期.md)
 
+- [Vue双向绑定](./myArticle/Vue双向绑定.md)
+
 
 ### 每周翻译文章
 
