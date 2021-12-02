@@ -14,6 +14,8 @@
 
 - [Vue双向绑定](./myArticle/Vue双向绑定.md)
 
+- [初识Proxy](./myArticle/Vue双向绑定.md)
+
 
 ### 每周翻译文章
 
