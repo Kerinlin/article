@@ -18,3 +18,7 @@
 ### 每周翻译文章
 
 - [Javascript是如何工作的](./translateArticle/week1.md)
+
+## 个人感悟
+
+- [如何写出通俗易懂的文章](./myArticle/如何写出通俗易懂的文章.md)
