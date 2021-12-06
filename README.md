@@ -14,6 +14,8 @@
 
 - [Vue双向绑定](./myArticle/Vue双向绑定.md)
 
+- [Vue组件通信](./myArticle/Vue组件通信.md)
+
 - [初识Proxy](./myArticle/初识Proxy.md)
 
 
