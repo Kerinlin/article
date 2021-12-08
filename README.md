@@ -16,6 +16,8 @@
 
 - [Vue组件通信](./myArticle/Vue组件通信.md)
 
+- [Vue nextTick](./myArticle/Vue的nextTick.md)
+
 - [初识Proxy](./myArticle/初识Proxy.md)
 
 
