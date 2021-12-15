@@ -1,3 +1,5 @@
+
+
 ## 详解虚拟DOM与Diff算法
 
 最近复习到虚拟DOM，翻阅了众多资料，特此总结了这篇长文，加深自己对vue的理解。
@@ -116,8 +118,6 @@ const vnode = {
 2. diff算法比较分析新旧两个虚拟DOM差异
 3. 将差异patch到真实dom上实现更新
 
-第一部分上面已经讲了，接下来讲第二部分diff
-
 #### Diff算法
 
 为了避免不必要的渲染，按需更新，虚拟DOM会采用Diff算法进行虚拟DOM节点比较,比较节点差异，从而确定需要更新的节点，再进行渲染。vue采用的是**深度优先，同层比较**的策略。
@@ -161,7 +161,7 @@ function sameInputType(a, b) {
 }
 ```
 
-可以看到，两个节点是否相同是需要比较**标签(tag)**，**属性(在vue中是用data表示vnode中的属性props)**,**注释节点(isComment)**的,另外碰到input的话，是会做特殊处理的。
+可以看到，两个节点是否相同是需要比较**标签(tag)**，**属性(在vue中是用data表示vnode中的属性props)**, **注释节点(isComment)**的,另外碰到input的话，是会做特殊处理的。
 
 #### 创建新节点
 
@@ -377,10 +377,6 @@ if (isDef(oldVnode.text)) {
 }
 ```
 
-配上流程图会更清晰点
-
-![](https://vue-js.com/learn-vue/assets/img/3.7b0442aa.png)
-
 整体的逻辑代码如下
 
 ```javascript
@@ -436,22 +432,30 @@ function patchVnode(
         for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
         if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
-
+		//判断新节点是否有文本
     if (isUndef(vnode.text)) {
+      	//新旧节点都有子节点情况下，如果新旧子节点不相同，那么进行子节点的比较，就是updateChildren方法
         if (isDef(oldCh) && isDef(ch)) {
             if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
         } else if (isDef(ch)) {
+          	//只有新节点有子节点
             if (process.env.NODE_ENV !== 'production') {
+              	//重复Key检测
                 checkDuplicateKeys(ch)
             }
+          	//清除旧节点文本
             if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
+          	//添加新节点
             addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
         } else if (isDef(oldCh)) {
+          	//只有旧节点有子节点，删除旧节点
             removeVnodes(oldCh, 0, oldCh.length - 1)
         } else if (isDef(oldVnode.text)) {
+          	//新旧节点都无子节点
             nodeOps.setTextContent(elm, '')
         }
     } else if (oldVnode.text !== vnode.text) {
+      	//新节点文本替换旧节点文本
         nodeOps.setTextContent(elm, vnode.text)
     }
 
@@ -460,4 +464,298 @@ function patchVnode(
     }
 }
 ```
+
+配上流程图会更清晰点
+
+<img src="https://s2.loli.net/2021/12/15/bqZ4ev1ExcHWMs2.png" alt="image-20211215155849695" style="zoom: 50%;" />
+
+![](https://vue-js.com/learn-vue/assets/img/3.7b0442aa.png)
+
+**子节点的比较更新updateChildren**
+
+新旧节点都有子节点的情况下，这个时候是需要调用updateChildren方法来比较更新子节点的。所以在数据上，新旧节点子节点，就保存为了两个数组。
+
+```javascript
+const oldCh = [oldVnode1, oldVnode2,oldVnode3];
+const newCh = [newVnode1, newVnode2,newVnode3];
+```
+
+子节点更新采用的是**双端比较**的策略，什么是双端比较呢，就是新旧节点比较是通过互相比较首尾元素(存在4种比较)，然后向中间靠拢比较(**newStartIdx,与oldStartIdx递增,newEndIdx与oldEndIdx递减**)的策略。
+
+**比较过程**
+
+![](https://vue-js.com/learn-vue/assets/img/8.e4c85c40.png)
+
+**向中间靠拢**
+
+![](https://vue-js.com/learn-vue/assets/img/15.e9bdf5c1.png)
+
+这里对上面出现的**新前，新后，旧前，旧后**做一下说明
+
+1. 新前，指的是**新节点未处理**的子节点数组中的**第一个**元素，对应到vue源码中的**newStartVnode**
+2. 新后，指的是**新节点未处理**的子节点数组中的**最后一个**元素,对应到vue源码中的**newEndVnode**
+3. 旧前，指的是**旧节点未处理**的子节点数组中的**第一个**元素,对应到vue源码中的**oldStartVnode**
+4. 旧后，指的是**旧节点未处理**的子节点数组中的**最后一个**元素,对应到vue源码中的**oldEndVnode**
+
+**子节点比较过程**
+
+接下来对上面的比较过程以及比较后做的操作做下说明
+
+- **新前与旧前**的比较，如果他们相同，那么进行上面说到的patchVnode更新操作，然后新旧节点各向后一步，进行第二项的比较...直到遇到不同才会换种比较方式
+
+![](https://vue-js.com/learn-vue/assets/img/9.e017b452.png)
+
+```javascript
+if (sameVnode(oldStartVnode, newStartVnode)) {
+  // 更新子节点
+  patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+  // 新旧各向后一步
+  oldStartVnode = oldCh[++oldStartIdx]
+  newStartVnode = newCh[++newStartIdx]
+}
+```
+
+
+
+- **新后与旧后**的比较，如果他们相同，同样进行pathchVnode更新，然后新旧各向前一步，进行前一项的比较...直到遇到不同，才会换比较方式
+
+![](https://vue-js.com/learn-vue/assets/img/10.cf98adc0.png)
+
+```javascript
+if (sameVnode(oldEndVnode, newEndVnode)) {
+    //更新子节点
+    patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
+    // 新旧向前
+    oldEndVnode = oldCh[--oldEndIdx]
+    newEndVnode = newCh[--newEndIdx]
+}
+```
+
+- **新后与旧前**的比较，如果它们相同，就进行更新操作，然后将旧前移动到**所有未处理旧节点数组最后面**，使旧前与新后位置保持一致，然后双方一起向中间靠拢，新向前，旧向后。如果不同会继续切换比较方式
+
+![](https://vue-js.com/learn-vue/assets/img/12.bace2f7f.png)
+
+```javascript
+if (sameVnode(oldStartVnode, newEndVnode)) { 
+  patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
+  //将旧子节点数组第一个子节点移动插入到最后
+  canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
+  //旧向后
+  oldStartVnode = oldCh[++oldStartIdx]
+  //新向前
+  newEndVnode = newCh[--newEndIdx]
+```
+
+- **新前与旧后**的比较，如果他们相同，就进行更新，然后将旧后移动到**所有未处理旧节点数组最前面**，是旧后与新前位置保持一致，，然后新向后，旧向前，继续向中间靠拢。继续比较剩余的节点。如果不同，就使用传统的循环遍历查找。
+
+![](https://vue-js.com/learn-vue/assets/img/14.18c1c6dd.png)
+
+```javascript
+if (sameVnode(oldEndVnode, newStartVnode)) {
+  patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+  //将旧后移动插入到最前
+  canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+  //旧向前
+  oldEndVnode = oldCh[--oldEndIdx]
+  //新向后
+  newStartVnode = newCh[++newStartIdx]
+}
+```
+
+- **循环遍历查找**，上面四种都没找到的情况下，会通过key去查找匹配。
+
+进行到这一步对于没有设置key的节点，第一次会通过createKeyToOldIdx建立key与index的映射 {key:index}
+
+```javascript
+// 对于没有设置key的节点，第一次会通过createKeyToOldIdx建立key与index的映射 {key:index}
+if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+```
+
+然后拿新节点的key与旧节点进行比较，找到key值匹配的节点的位置，这里需要注意的是，如果新节点也没key，那么就会执行findIdxInOld方法，从头到尾遍历匹配旧节点
+
+```javascript
+//通过新节点的key,找到新节点在旧节点中所在的位置下标,如果没有设置key，会执行遍历操作寻找
+idxInOld = isDef(newStartVnode.key)
+  ? oldKeyToIdx[newStartVnode.key]
+  : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
+
+//findIdxInOld方法
+function findIdxInOld(node, oldCh, start, end) {
+  for (let i = start; i < end; i++) {
+    const c = oldCh[i]
+    //找到相同节点下标
+    if (isDef(c) && sameVnode(node, c)) return i
+  }
+}
+```
+
+如果通过上面的方法，依旧没找到新节点与旧节点匹配的下标，那就说明这个节点是新节点，那就执行新增的操作。
+
+```javascript
+//如果新节点无法在旧节点中找到自己的位置下标,说明是新元素，执行新增操作
+if (isUndef(idxInOld)) {
+  createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+}
+```
+
+如果找到了，那么说明在旧节点中找到了key值一样，或者节点和key都一样的旧节点。如果节点一样，那么在patchVnode之后，需要将旧节点**移动到所有未处理节点之前**，对于key一样，元素不同的节点，将其认为是新节点，执行新增操作。执行完成后，新节点向后一步。
+
+![](https://vue-js.com/learn-vue/assets/img/6.b9621b4d.png)
+
+```javascript
+//如果新节点无法在旧节点中找到自己的位置下标,说明是新元素，执行新增操作
+if (isUndef(idxInOld)) {
+  // 新增元素
+  createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+} else {
+  // 在旧节点中找到了key值一样的节点
+  vnodeToMove = oldCh[idxInOld]
+  if (sameVnode(vnodeToMove, newStartVnode)) {
+    // 相同子节点更新操作
+    patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+    // 更新完将旧节点赋值undefined
+    oldCh[idxInOld] = undefined
+    //将旧节点移动到所有未处理节点之前
+    canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+  } else {
+    // 如果是相同的key，不同的元素，当做新节点，执行创建操作
+    createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+  }
+}
+//新节点向后
+newStartVnode = newCh[++newStartIdx]
+```
+
+当完成对旧节点的遍历，但是新节点还没完成遍历,那就说明后续的都是新增节点，执行新增操作，如果完成对新节点遍历，旧节点还没完成遍历，那么说明旧节点出现冗余节点，执行删除操作。
+
+```javascript
+//完成对旧节点的遍历，但是新节点还没完成遍历，
+if (oldStartIdx > oldEndIdx) {
+  refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
+  // 新增节点
+  addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
+} else if (newStartIdx > newEndIdx) {
+  // 发现多余的旧节点，执行删除操作
+  removeVnodes(oldCh, oldStartIdx, oldEndIdx)
+}
+```
+
+**子节点比较总结**
+
+上面就是子节点比较更新的一个完整过程，这是完整的逻辑代码
+
+```javascript
+function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+    let oldStartIdx = 0
+    let newStartIdx = 0
+    let oldEndIdx = oldCh.length - 1
+    let oldStartVnode = oldCh[0] //旧前
+    let oldEndVnode = oldCh[oldEndIdx] //旧后
+    let newEndIdx = newCh.length - 1
+    let newStartVnode = newCh[0] //新前
+    let newEndVnode = newCh[newEndIdx] //新后
+    let oldKeyToIdx, idxInOld, vnodeToMove, refElm
+
+    // removeOnly is a special flag used only by <transition-group>
+    // to ensure removed elements stay in correct relative positions
+    // during leaving transitions
+    const canMove = !removeOnly
+
+    if (process.env.NODE_ENV !== 'production') {
+        checkDuplicateKeys(newCh)
+    }
+
+    //双端比较遍历
+    while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+        if (isUndef(oldStartVnode)) {
+            //旧前向后移动
+            oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
+        } else if (isUndef(oldEndVnode)) {
+            // 旧后向前移动
+            oldEndVnode = oldCh[--oldEndIdx]
+        } else if (sameVnode(oldStartVnode, newStartVnode)) {
+            //新前与旧前
+            //更新子节点
+            patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+                // 新旧各向后一步
+            oldStartVnode = oldCh[++oldStartIdx]
+            newStartVnode = newCh[++newStartIdx]
+        } else if (sameVnode(oldEndVnode, newEndVnode)) {
+            //新后与旧后
+            //更新子节点
+            patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
+                //新旧各向前一步
+            oldEndVnode = oldCh[--oldEndIdx]
+            newEndVnode = newCh[--newEndIdx]
+        } else if (sameVnode(oldStartVnode, newEndVnode)) {
+            // 新后与旧前
+            //更新子节点
+            patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
+                //将旧前移动插入到最后
+            canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
+                //新向前，旧向后
+            oldStartVnode = oldCh[++oldStartIdx]
+            newEndVnode = newCh[--newEndIdx]
+        } else if (sameVnode(oldEndVnode, newStartVnode)) {
+            // 新前与旧后
+            patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+
+            //将旧后移动插入到最前
+            canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+
+            //新向后，旧向前
+            oldEndVnode = oldCh[--oldEndIdx]
+            newStartVnode = newCh[++newStartIdx]
+        } else {
+            // 对于没有设置key的节点，第一次会通过createKeyToOldIdx建立key与index的映射 {key:index}
+            if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+
+            //通过新节点的key,找到新节点在旧节点中所在的位置下标,如果没有设置key，会执行遍历操作寻找
+            idxInOld = isDef(newStartVnode.key) ?
+                oldKeyToIdx[newStartVnode.key] :
+                findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
+
+            //如果新节点无法在旧节点中找到自己的位置下标,说明是新元素，执行新增操作
+            if (isUndef(idxInOld)) {
+                // 新增元素
+                createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+            } else {
+                // 在旧节点中找到了key值一样的节点
+                vnodeToMove = oldCh[idxInOld]
+                if (sameVnode(vnodeToMove, newStartVnode)) {
+                    // 相同子节点更新操作
+                    patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
+                        // 更新完将旧节点赋值undefined
+                    oldCh[idxInOld] = undefined
+                        //将旧节点移动到所有未处理节点之前
+                    canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+                } else {
+                    // 如果是相同的key，不同的元素，当做新节点，执行创建操作
+                    createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+                }
+            }
+            //新节点向后一步
+            newStartVnode = newCh[++newStartIdx]
+        }
+    }
+
+    //完成对旧节点的遍历，但是新节点还没完成遍历，
+    if (oldStartIdx > oldEndIdx) {
+        refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
+            // 新增节点
+        addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
+    } else if (newStartIdx > newEndIdx) {
+        // 发现多余的旧节点，执行删除操作
+        removeVnodes(oldCh, oldStartIdx, oldEndIdx)
+    }
+}
+```
+
+### Vue3中的Diff
+
+Todo....
+
+### React中的Diff
+
+Todo....
 
