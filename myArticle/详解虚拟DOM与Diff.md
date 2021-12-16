@@ -2,9 +2,13 @@
 
 ## 详解虚拟DOM与Diff算法
 
-最近复习到虚拟DOM，翻阅了众多资料，特此总结了这篇长文，加深自己对vue的理解。
+最近复习到虚拟DOM与Diff，翻阅了众多资料，特此总结了这篇长文，加深自己对vue的理解。另外一个原因是，又到了年底，看到自己半死不活的掘力值，level3离我那么近又离我那么远，简直欲哭无泪，为了KPI，我冲了，就吐血整理了这篇文章，标题比较朴实无华，虽然我很想起为了冲业绩起那种吊打面试官之类的标题，但是想想还是算了，曾经的屠龙少年真的要变成恶龙吗？不能为了利益变成自己讨厌的人。这篇文章比较详细的分析了vue的虚拟DOM,Diff算法，其中一些关键的地方从别处搬运了一些图进行说明(感谢制图的大佬)，也包含比较详细的源码解读。如果感觉文章不错，麻烦各位帅比给小弟点个赞，如果有错误的地方，也欢迎各位大佬在评论区指出，当然如果有不明白的部分，也欢迎提问。
+
+![image-20211216160419939](https://s2.loli.net/2021/12/16/6ytLFQEYuv1GjBk.png)
 
 ### 真实DOM的渲染
+
+在讲虚拟DOM之前，先说一下真实DOM的渲染。
 
 ![](https://upload-images.jianshu.io/upload_images/15050783-c14e5c2c54996b48.png?imageMogr2/auto-orient/strip|imageView2/2/w/646/format/webp)
 
@@ -167,91 +171,9 @@ function sameInputType(a, b) {
 
 当新节点有的，旧节点没有，这就意味着这是全新的内容节点。只有元素节点，文本节点，注释节点才能被创建插入到DOM中。
 
-```javascript
-const oldVnode = {
-    tag: 'div',
-    props: {
-        class: 'list'
-    },
-  	text: 'list'
-    children: [{
-        tag: 'p',
-        props: {
-            class: 'item'
-        },
-    }]
-}
-
-const newVnode = {
-    tag: 'div',
-    props: {
-        class: 'list'
-    },
-  	text: 'list'
-    children: [{
-            tag: 'p',
-            props: {
-                class: 'item'
-            },
-        },
-        //新增内容，直接在节点后新增
-        {
-            tag: 'h1',
-            props: {
-                class: 'item'
-            },
-        },
-    ]
-}
-```
-
 #### 删除旧节点
 
 当旧节点有，而新节点没有，那就意味着，新节点放弃了旧节点的一部分。删除节点会连带的删除旧节点的子节点。
-
-```javascript
-const oldVnode = {
-    tag: 'div',
-    props: {
-        class: 'list'
-    },
-  	text: 'list'
-    children: [
-      //新节点没有这个标签，所以会执行清除操作，连带子节点一块删除
-      {
-        tag: 'div',
-        props: {
-            class: 'item'
-        },
-      children: [
-        {
-         	tag: 'p',
-        	props: {
-            class: 'item-p'
-        	},
-        }
-      ]
-    }]
-}
-
-const newVnode = {
-    tag: 'div',
-    props: {
-        class: 'list'
-    },
-  	text: 'list'
-    children: [
-        {
-            tag: 'h1',
-            props: {
-                class: 'item'
-            },
-        },
-    ]
-}
-```
-
-上面例子中就会连带删除旧节点的item,item-p。
 
 #### 更新节点
 
@@ -536,7 +458,7 @@ if (sameVnode(oldEndVnode, newEndVnode)) {
 ![](https://vue-js.com/learn-vue/assets/img/12.bace2f7f.png)
 
 ```javascript
-if (sameVnode(oldStartVnode, newEndVnode)) { 
+if (sameVnode(oldStartVnode, newEndVnode)) {
   patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
   //将旧子节点数组第一个子节点移动插入到最后
   canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
@@ -751,11 +673,15 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly)
 }
 ```
 
-### Vue3中的Diff
+### 最后
 
-Todo....
+最近准备建个小群，群定位就是真实的技术交流群，特别欢迎活跃爱分享爱"装逼"的同学加入,平常有问题就互帮互助，没问题就摸鱼聊天，一起分享提高工作效率，实现共同摸鱼的方法。如果想加入的同学欢迎与我联系，yarnbuild。
 
-### React中的Diff
 
-Todo....
 
+### 参考资料
+
+1. [VirtualDOM与diff](https://github.com/answershuto/learnVue/blob/master/docs/VirtualDOM%E4%B8%8Ediff(Vue%E5%AE%9E%E7%8E%B0).MarkDown)
+2. [渲染页面：浏览器的工作原理](https://developer.mozilla.org/zh-CN/docs/Web/Performance/How_browsers_work)
+2. [Vue中的DOM-Diff](https://vue-js.com/learn-vue/virtualDOM/patch.html#_1-%E5%89%8D%E8%A8%80)
+2. [深入剖析：Vue核心之虚拟DOM](https://juejin.cn/post/6844903895467032589#heading-19)
