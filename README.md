@@ -14,6 +14,8 @@
 
 - [Vue双向绑定](./myArticle/Vue双向绑定.md)
 
+- [详解虚拟DOM与Diff](./myArticle/详解虚拟DOM与Diff.md)
+
 - [Vue组件通信](./myArticle/Vue组件通信.md)
 
 - [Vue nextTick](./myArticle/Vue的nextTick.md)
