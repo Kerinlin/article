@@ -22,6 +22,8 @@
 
 - [初识Proxy](./myArticle/初识Proxy.md)
 
+- [前端模块化](./myArticle/前端模块化.md)
+
 
 ### 每周翻译文章
 
