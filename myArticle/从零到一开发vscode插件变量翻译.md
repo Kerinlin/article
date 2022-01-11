@@ -9,6 +9,8 @@
 
 ![](https://s2.loli.net/2021/12/30/NotcCIyDVFAQ4dp.gif)
 
+插件已经上线，vscode插件商店搜索**Translate Variable**即可体验，代码也开源了，源码[戳这里](https://github.com/Kerinlin/translate-variable)
+
 
 
 ### 功能设计
@@ -86,127 +88,24 @@ extention.js主要作用是作为插件功能的实现点，通过active,deactiv
 
 #### 实现翻译功能
 
-翻译这里主要是使用了两个服务，谷歌和百度翻译。
+翻译这里主要是使用了3个服务，谷歌，百度翻译，有道翻译。
 
-1. 谷歌翻译参考了别人的做法，使用**google-translate-token**获取到token，然后构造请求url,再处理返回的body,拿到返回结果。这里还有一个没搞懂的地方就是请求url的生成很迷，不知道这一块是啥意思。
+1. 谷歌翻译使用**@vitalets/google-translate-api**,无需配置，但是需要自己能访问外网环境
 
    ```javascript
-   const qs = require('querystring');
-   const got = require('got');
-   const safeEval = require('safe-eval');
-   const googleToken = require('google-translate-token');
-   const languages = require('../utils/languages.js');
-   const config = require('../config/index.js');
-
-   // 获取请求url
-   async function getRequestUrl(text, opts) {
-       let token = await googleToken.get(text);
-       const data = {
-           client: 'gtx',
-           sl: opts.from,
-           tl: opts.to,
-           hl: opts.to,
-           dt: ['at', 'bd', 'ex', 'ld', 'md', 'qca', 'rw', 'rm', 'ss', 't'],
-           ie: 'UTF-8',
-           oe: 'UTF-8',
-           otf: 1,
-           ssel: 0,
-           tsel: 0,
-           kc: 7,
-           q: text
-       };
-       data[token.name] = token.value;
-       const requestUrl = `${config.googleBaseUrl}${qs.stringify(data)}`;
-       return requestUrl;
+   const translate = require('@vitalets/google-translate-api');
+   async function getGoogleTransResult(text, opt) {
+     const { from, to } = opt;
+     try {
+       const result = await translate(text, { from: from, to: to });
+       console.log("[ 谷歌翻译 ]", result);
+       return result.text;
+     } catch (error) {
+       console.log(error);
+     }
    }
-
-   //处理返回的body
-   async function handleBody(url, opts) {
-       const result = await got(url);
-       let resultObj = {
-           text: '',
-           from: {
-               language: {
-                   didYouMean: false,
-                   iso: ''
-               },
-               text: {
-                   autoCorrected: false,
-                   value: '',
-                   didYouMean: false
-               }
-           },
-           raw: ''
-       };
-
-       if (opts.raw) {
-           resultObj.raw = result.body;
-       }
-       const body = safeEval(result.body);
-
-       // console.log('body', body);
-       body[0].forEach(function(obj) {
-           if (obj[0]) {
-               resultObj.text += obj[0];
-           }
-       });
-
-       if (body[2] === body[8][0][0]) {
-           resultObj.from.language.iso = body[2];
-       } else {
-           resultObj.from.language.didYouMean = true;
-           resultObj.from.language.iso = body[8][0][0];
-       }
-
-       if (body[7] && body[7][0]) {
-           let str = body[7][0];
-
-           str = str.replace(/<b><i>/g, '[');
-           str = str.replace(/<\/i><\/b>/g, ']');
-
-           resultObj.from.text.value = str;
-
-           if (body[7][5] === true) {
-               resultObj.from.text.autoCorrected = true;
-           } else {
-               resultObj.from.text.didYouMean = true;
-           }
-       }
-       return resultObj;
-   }
-
-   //翻译
-   async function translate(text, opts) {
-       opts = opts || {};
-       opts.from = opts.from || 'auto';
-       opts.to = opts.to || 'en';
-
-       opts.from = languages.getCode(opts.from);
-       opts.to = languages.getCode(opts.to);
-
-       try {
-           const requestUrl = await getRequestUrl(text, opts);
-           const result = await handleBody(requestUrl, opts);
-           return result;
-       } catch (error) {
-           console.log(error);
-       }
-   }
-
-   // 获取翻译结果
-   const getGoogleTransResult = async(originText, ops = {}) => {
-       const { from, to } = ops;
-       try {
-           const result = await translate(originText, { from: from || config.defaultFrom, to: to || defaultTo });
-           console.log('谷歌翻译结果', result.text);
-           return result;
-       } catch (error) {
-           console.log(error);
-           console.log('翻译失败');
-       }
-   }
-
-   module.exports = getGoogleTransResult;
+   
+   module.exports = getGoogleTransResult
    ```
 
 
@@ -221,7 +120,7 @@ extention.js主要作用是作为插件功能的实现点，通过active,deactiv
    axios.defaults.crossDomain = true;
    axios.defaults.headers.post["Content-Type"] =
        "application/x-www-form-urlencoded";
-
+   
    // 百度翻译
    async function getBaiduTransResult(text = "", opt = {}) {
        const { from, to, appid, key } = opt;
@@ -241,9 +140,69 @@ extention.js主要作用是作为插件功能的实现点，通过active,deactiv
            console.log({ error });
        }
    }
-
+   
    module.exports = getBaiduTransResult;
    ```
+
+3. 有道翻译需要申请应用id与应用key,新人注册提供50块免费券，但是用完后就是收费了，不太划算
+
+   ```javascript
+   
+   const config = require('../config/index.js');
+   const { createHash } = require('crypto');
+   const qs = require('querystring');
+   const axios = require("axios");
+   
+   function hash(string) {
+     return createHash('sha256').update(string).digest('hex');
+   }
+   
+   function getInput(text) {
+     if (!text) {
+       return;
+     }
+     let input;
+     const strLength = text.length;
+     if (strLength <= 20) {
+       input = text;
+     } else {
+       input = `${text.substring(0, 10)}${strLength}${text.substring(strLength - 10, strLength)}`;
+     }
+     return input;
+   }
+   
+   async function getYouDaoTransResult(text, opt = {}) {
+     const { from, to, appid, secretKey } = opt;
+     const input = getInput(text);
+     const salt = (new Date).getTime();
+     const curtime = Math.round(new Date().getTime() / 1000);
+     const str = `${appid}${input}${salt}${curtime}${secretKey}`;
+     const sign = hash(str);
+     const params = {
+       q: text,
+       appKey: appid,
+       salt: salt,
+       from: from,
+       to: to,
+       sign: sign,
+       signType: "v3",
+       curtime: curtime,
+     }
+     try {
+       const res = await axios.post(config.youdaoBaseUrl, qs.stringify(params));
+       console.log(`有道翻译结果 ${res.data.translation[0]}`);
+       return res.data.translation[0];
+     }
+     catch (err) {
+       console.log(error);
+     }
+   }
+   
+   module.exports = getYouDaoTransResult
+   
+   ```
+
+   
 
 #### 获取选中的文本
 
