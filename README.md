@@ -31,6 +31,9 @@
 
 - [Javascript是如何工作的](./translateArticle/week1.md)
 
+### 日常了解
+- [端对端通信](./dailyArticle/%E7%AB%AF%E5%AF%B9%E7%AB%AF%E5%8A%A0%E5%AF%86.md)
+
 ## 个人感悟
 
 - [如何写出通俗易懂的文章](./myArticle/如何写出通俗易懂的文章.md)
