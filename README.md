@@ -33,7 +33,21 @@
 
 ### 日常了解
 - [端对端通信](./dailyArticle/%E7%AB%AF%E5%AF%B9%E7%AB%AF%E5%8A%A0%E5%AF%86.md)
+### Electron
 
+- [Electron自动更新开发](https://www.notion.so/Electron-ba4c3c3318c34d4481841330e5e9f0c3)
+
+- [Electron 主进程与渲染进程通信](https://www.notion.so/Electron-8a325397d93344db9411bb9a2770d252)
+
+- [Electron 运行bat脚本](https://www.notion.so/Electron-bat-c4bb93ed67504f3ab45091d8c603a616)
+
+- [Electron 自定义安装卸载](https://www.notion.so/Electron-77932eb1e3904e569b1d0e555babe164)
+
+- [Electron 打开文件夹](https://www.notion.so/Electron-fa6439c8090e45568ad850e44fe4ce09)
+
+- [Electron 获取文件夹路径](https://www.notion.so/Electron-cbd062c60f9f4e5f8e2b146dba4ffdcc)
+
+- [Electron 保证只有一个主程序](https://www.notion.so/Electron-9a1eb301b90f40c491e1c4b65e312c27)
 ## 个人感悟
 
 - [如何写出通俗易懂的文章](./myArticle/如何写出通俗易懂的文章.md)
