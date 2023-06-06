@@ -1,3 +1,6 @@
+### 更新
+所有文章全部都更新到我的个人[notion站点](https://blog-everything.notion.site/)
+
 ### 我自己的复习文章
 
 - [防抖节流](./myArticle/防抖节流.md)
